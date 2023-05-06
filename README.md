@@ -36,7 +36,7 @@ Please select the button **Edit config** to configurate and then **Rescan config
 ## Generate:
 *SendKeysGUI.cs* is a single file C#-WPF source file. Compile with **Compile.bat** (no *Visual Studio* or *MSBuild* needed, but a supported version of *Windows*)
 
-or look for a pre-compiled version in [Releases](https://github.com/MScholtes/SendKeysGUI/Releases).
+or look for a pre-compiled version in [Releases](https://github.com/MScholtes/SendKeysGUI/releases).
 
 ## Use:
 After start *SendKeysGUI* will register its hotkeys. With the checkbox **AltHotKey** you can switch between *Ctrl* and *Alt* as base hotkey modifier.
