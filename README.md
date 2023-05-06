@@ -46,9 +46,9 @@ After start *SendKeysGUI* will register its hotkeys. With the checkbox **AltHotK
 Please fill the values of the text fields with text macros of your choice in *SendKeys* syntax (click **Sendkeys help** for information).
 The corresponding hotkey is shown in the tool tips of the buttons.
 
-![SendKeysHelp]('SendKeysHelp.jpg')
+![SendKeysHelp](SendKeysHelp.jpg)
 
-The function **Clipboard** sends the text content of the clipboard as keystrokes, **Send file** sends the content of a text file, which can be configured with **Edit file** or the neighbour path field.
+The function **Clipboard** sends the text content of the clipboard as keystrokes, **Send file** sends the content of a text file, which can be configured with **Edit file** or the neighbour path field. The button **Command** executes the command line in the textfield next to it with *cmd.exe* and sends its output as keystrokes.
 
 Use the buttons **Edit config** to configurate *SendKeysGUI* and then **Rescan config** to use the new configuration.
 
