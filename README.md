@@ -3,19 +3,17 @@ Keyboard macro tool, sends clipboard, text, file content or command output as ke
 
 Graphical front end for the fabulous **[sendkeys](https://github.com/lallousx86/SendKeys) by Elias Bachaalany (lallousx86)**.
 
-### Version 2, 2023-05-05
-- first release on github
+### Version 2.1, 2023-05-12
+- automatic configuration of the keyboard virtual keys left of "1" and right of "0" as hotkeys
 
 ## Description:
 Keyboard macro tool, sends clipboard, text, file content or command output as keystrokes.
 
-Hotkeys from *Ctrl-^*, *Ctrl-1* to *Ctrl-0* up to *Ctrl-'* and *Ctrl-Shift-^*, *Ctrl-Shift-1* to *Ctrl-Shift-0* up to *Ctrl-Shift-'* are used to send this text to the active window.
+Hotkeys from *Ctrl-<keyleftof1>*, *Ctrl-1* to *Ctrl-0* up to *Ctrl-<keysecondrightof0>* and *Ctrl-Shift-<keyleftof1>*, *Ctrl-Shift-1* to *Ctrl-Shift-0* up to *Ctrl-Shift-<keysecondrightof0>* are used to send this text to the active window.
 
-The syntax for keys is based on the .Net **System.Windows.Forms.SendKeys** class, the hotkey modifier can be switched to *Alt* instead of *Ctrl*. 
+The syntax for keys is based on the .Net **System.Windows.Forms.SendKeys** class, the hotkey modifier can be switched to *Alt* instead of *Ctrl*.
 
 Graphical front end for the fabulous **[sendkeys](https://github.com/lallousx86/SendKeys) by Elias Bachaalany (lallousx86)**.
-
-**Important:** *SendKeysGUI* expects Central Europe keyboard layout **QWERTZ** (https://en.wikipedia.org/wiki/QWERTZ), the keys ^, ß, ´ might not work on other layout (feedback would be helpful here). A future version will allow custom configuration of the keyboard virtual keys for hotkeys.
 
 The delivered **sendkeys.exe** has additional features:
 - sending keys or texts multiple times, e.g. {x 10} or {Text 3}
@@ -23,7 +21,7 @@ The delivered **sendkeys.exe** has additional features:
 - {ALT}, {CTRL} und {SHIFT} as alternative to %, ^ and +
 - {WAIT ...} instead of {DELAY ...}
 - expanded VK_ values
-- new commands {EXEC ...}, {EXECWAIT ...} and {EXECTOKEYS ...} 
+- new commands {EXEC ...}, {EXECWAIT ...} and {EXECTOKEYS ...}
 - mouse control
 
 ## Installation:

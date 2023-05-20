@@ -3,7 +3,7 @@
 // Markus Scholtes, 2020+2023
 //
 // WPF "all in one file" program, no Visual Studio or MSBuild is needed to compile
-// Version for .Net 4.x
+// V2.1 2023-05-12: determines virtual key codes according to keyboard layout and sets them for hotkeys
 
 /* compile with:
 %WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe /target:winexe SendKeysGUI.cs /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\presentationframework.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\windowsbase.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\presentationcore.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\System.Xaml.dll" /win32icon:MScholtes.ico
@@ -32,8 +32,8 @@ using System.Reflection;
 [assembly:AssemblyCopyright("© Markus Scholtes 2023")]
 [assembly:AssemblyTrademark("")]
 [assembly:AssemblyCulture("")]
-[assembly:AssemblyVersion("2.0.0.0")]
-[assembly:AssemblyFileVersion("2.0.0.0")]
+[assembly:AssemblyVersion("2.1.0.0")]
+[assembly:AssemblyFileVersion("2.1.0.0")]
 
 namespace WPFApplication
 {
@@ -57,7 +57,7 @@ namespace WPFApplication
 			((TextBox)objWindow.FindName("FileToSend")).Text = iniPath + "\\FileToSend.txt";
 			if (!Directory.Exists(iniPath))
 			{
-				Directory.CreateDirectory(iniPath);
+				try { Directory.CreateDirectory(iniPath); } catch { }
 
 				string directoryOfExecutable = System.IO.Path.GetDirectoryName(System.Reflection.Assembly.GetExecutingAssembly().GetName().CodeBase);
 				if (directoryOfExecutable.StartsWith("file:\\") || directoryOfExecutable.StartsWith("http:\\")) { directoryOfExecutable = directoryOfExecutable.Substring(6); }
@@ -79,8 +79,8 @@ namespace WPFApplication
 				{
 					for (int i = 0; i <= 9; i++) iniFile.Write("Settings", "Text" + i.ToString(), "");
 					for (int i = 0; i <= 9; i++) iniFile.Write("Settings", "TextShift" + i.ToString(), "");
-					iniFile.Write("Settings", "TextShiftSZ", "");
-					iniFile.Write("Settings", "TextShiftAccent", "");
+					iniFile.Write("Settings", "TextShiftHKR1", "");
+					iniFile.Write("Settings", "TextShiftHKR2", "");
 					iniFile.Write("Settings", "Editor", editorToUse);
 					iniFile.Write("Settings", "FileToSend", "");
 					iniFile.Write("Settings", "Command", "for /l %i in (1,1,10) do @echo %i.");
@@ -92,8 +92,8 @@ namespace WPFApplication
 					((TextBox)objWindow.FindName("TextToSend" + i.ToString())).Text = iniFile.Read("Settings", "Text" + i.ToString());
 					((TextBox)objWindow.FindName("TextShiftToSend" + i.ToString())).Text = iniFile.Read("Settings", "TextShift" + i.ToString());
 				}
-				((TextBox)objWindow.FindName("TextShiftToSendSZ")).Text = iniFile.Read("Settings", "TextShiftSZ");
-				((TextBox)objWindow.FindName("TextShiftToSendAccent")).Text = iniFile.Read("Settings", "TextShiftAccent");
+				((TextBox)objWindow.FindName("TextShiftToSendHKR1")).Text = iniFile.Read("Settings", "TextShiftHKR1");
+				((TextBox)objWindow.FindName("TextShiftToSendHKR2")).Text = iniFile.Read("Settings", "TextShiftHKR2");
 				if (iniFile.Read("Settings", "Editor") != "") editorToUse = iniFile.Read("Settings", "Editor");
 				if (iniFile.Read("Settings", "FileToSend") != "") ((TextBox)objWindow.FindName("FileToSend")).Text = iniFile.Read("Settings", "FileToSend");
 				((TextBox)objWindow.FindName("CommandToSend")).Text = iniFile.Read("Settings", "Command");
@@ -103,6 +103,7 @@ namespace WPFApplication
 					((CheckBox)objWindow.FindName("HotkeyModifier")).IsChecked = true;
 					objWindow.useAltModifier = true;
 				}
+
 			}
 
 			// return CustomWindow object
@@ -142,7 +143,7 @@ namespace WPFApplication
 			SendKeys(sender, Clipboard.GetText().Replace("\r\n", "{ENTER}").Replace("\n", "{ENTER}"));
 		}
 
-		// left mouse click on button "Text"
+		// left mouse click on button "Send Text"
 		private void TextButton_Click(object sender, RoutedEventArgs e)
 		{
 			// event is handled afterwards
@@ -239,8 +240,8 @@ namespace WPFApplication
 					((TextBox)objWindow.FindName("TextToSend" + i.ToString())).Text = iniFile.Read("Settings", "Text" + i.ToString());
 					((TextBox)objWindow.FindName("TextShiftToSend" + i.ToString())).Text = iniFile.Read("Settings", "TextShift" + i.ToString());
 				}
-				((TextBox)objWindow.FindName("TextShiftToSendSZ")).Text = iniFile.Read("Settings", "TextShiftSZ");
-				((TextBox)objWindow.FindName("TextShiftToSendAccent")).Text = iniFile.Read("Settings", "TextShiftAccent");
+				((TextBox)objWindow.FindName("TextShiftToSendHKR1")).Text = iniFile.Read("Settings", "TextShiftHKR1");
+				((TextBox)objWindow.FindName("TextShiftToSendHKR2")).Text = iniFile.Read("Settings", "TextShiftHKR2");
 				if (iniFile.Read("Settings", "Editor") != "") editorToUse = iniFile.Read("Settings", "Editor");
 				if (iniFile.Read("Settings", "FileToSend") != "") ((TextBox)objWindow.FindName("FileToSend")).Text = iniFile.Read("Settings", "FileToSend");
 				((TextBox)objWindow.FindName("CommandToSend")).Text = iniFile.Read("Settings", "Command");
@@ -329,7 +330,7 @@ namespace WPFApplication
 			// event is handled afterwards
 			e.Handled = true;
 
-			// switch between Ctrl and Alt as hotkey modifier, but only if hotkes are registered
+			// switch between Ctrl and Alt as hotkey modifier, but only if hotkeys are registered
 			if (bHotkeyRegistered) SwitchHotKeyModifier();
 		}
 
@@ -405,6 +406,9 @@ namespace WPFApplication
 		[DllImport("user32.dll")]
 		private static extern bool UnregisterHotKey(IntPtr hWnd, int id);
 
+		[DllImport("user32.dll")]
+		private static extern uint MapVirtualKey(uint uCode, uint uMapType);
+
 		//Modifiers:
 		private const uint MOD_NONE = 0x0000; //(none)
 		private const uint MOD_ALT = 0x0001; //ALT
@@ -412,6 +416,9 @@ namespace WPFApplication
 		private const uint MOD_SHIFT = 0x0004; //SHIFT
 		private const uint MOD_WIN = 0x0008; //WINDOWS
 		private const uint MOD_NOREPEAT = 0x4000; // do not autorepeat hotkey
+
+		private const uint MAPVK_VK_TO_CHAR = 2; // The uCode parameter is a virtual-key code and is translated into an unshifted character value in the low order word of the return value. Dead keys (diacritics) are indicated by setting the top bit of the return value
+		private const uint MAPVK_VSC_TO_VK_EX = 3; // The uCode parameter is a scan code and is translated into a virtual-key code that distinguishes between left- and right-hand keys
 
 		private IntPtr windowHandle;
 		private HwndSource sourceHandle;
@@ -426,12 +433,46 @@ namespace WPFApplication
 			sourceHandle = HwndSource.FromHwnd(windowHandle);
 			sourceHandle.AddHook(HwndHook);
 
+			uint uiScanCode = MapVirtualKey(41, MAPVK_VSC_TO_VK_EX); // hot key left to number row
+			if ((uiScanCode != 0) && (iHKL != uiScanCode))
+			{ iHKL = (int)uiScanCode;
+				if ((MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255) != 0)
+				{
+					Button objButton = (Button)this.FindName("Clipboard");
+					objButton.ToolTip = "Send content of clipboard (Ctrl-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+					objButton = (Button)this.FindName("Command");
+					objButton.ToolTip = "Send output of command (Ctrl-Shift-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+				}
+			}
+			uiScanCode = MapVirtualKey(12, MAPVK_VSC_TO_VK_EX); // hot key right to number row
+			if ((uiScanCode != 0) && (iHKR1 != uiScanCode))
+			{ iHKR1 = (int)uiScanCode;
+				if ((MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255) != 0)
+				{
+					Button objButton = (Button)this.FindName("SendFile");
+					objButton.ToolTip = "Send content of file (Ctrl-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+					objButton = (Button)this.FindName("SendTextShiftHKR1");
+					objButton.ToolTip = "Send content of text field (Ctrl-Shift-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+				}
+			}
+			uiScanCode = MapVirtualKey(13, MAPVK_VSC_TO_VK_EX); // hot key second right to number row
+			if ((uiScanCode != 0) && (iHKR2 != uiScanCode))
+			{ iHKR2 = (int)uiScanCode;
+				if ((MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255) != 0)
+				{
+					Button objButton = (Button)this.FindName("EditFile");
+					objButton.ToolTip = "Edit content of file (Ctrl-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+					objButton = (Button)this.FindName("SendTextShiftHKR2");
+					objButton.ToolTip = "Send content of text field (Ctrl-Shift-" + ((char)(MapVirtualKey(uiScanCode, MAPVK_VK_TO_CHAR) & 255)).ToString() + ")";
+				}
+			}
+
 			// add hotkeys
 			if (useAltModifier)
 			{ // use Alt as modifier for hotkey
 				// add hotkeys
 				RegisterHotkeys(MOD_ALT);
-				
+
 				// change tooltip descriptions
 				SwitchToolTips("Ctrl-", "Alt-");
 			}
@@ -454,12 +495,12 @@ namespace WPFApplication
 				UnregisterHotKey(windowHandle, i);
 				UnregisterHotKey(windowHandle, i+0x100);
 			}
-			UnregisterHotKey(windowHandle, 0xDB);
-			UnregisterHotKey(windowHandle, 0x1DB);
-			UnregisterHotKey(windowHandle, 0xDC);
-			UnregisterHotKey(windowHandle, 0x1DC);
-			UnregisterHotKey(windowHandle, 0xDD);
-			UnregisterHotKey(windowHandle, 0x1DD);
+			UnregisterHotKey(windowHandle, iHKL);
+			UnregisterHotKey(windowHandle, iHKL+0x100);
+			UnregisterHotKey(windowHandle, iHKR1);
+			UnregisterHotKey(windowHandle, iHKR1+0x100);
+			UnregisterHotKey(windowHandle, iHKR2);
+			UnregisterHotKey(windowHandle, iHKR2+0x100);
 
 			// remove window procedure from main window
 			sourceHandle.RemoveHook(HwndHook);
@@ -471,6 +512,9 @@ namespace WPFApplication
 		bool useAltModifier = false;
 		bool bHotkeyRegistered = false;
 
+		// German QWERTZ keyboard: Left hotkey: ^, first right hotkey: ß, second right hotkey: ´
+		// list of virtual key codes: https://learn.microsoft.com/en-us/windows/win32/inputdev/virtual-key-codes
+		int iHKL = 0xDC, iHKR1 = 0xDB, iHKR2 = 0xDD;
 
 		// register hotkeys with Modifier MOD_CONTROL or MOD_ALT
 		private void RegisterHotkeys(uint uiModifier)
@@ -482,12 +526,12 @@ namespace WPFApplication
 				RegisterHotKey(windowHandle, (int)i, uiModifier | MOD_NOREPEAT, i); // uiModifier + 0 to uiModifier + 9
 				RegisterHotKey(windowHandle, (int)i+0x100, MOD_SHIFT | uiModifier | MOD_NOREPEAT, i); // Shift + uiModifier + 0 to Shift + uiModifier + 9
 			}
-			RegisterHotKey(windowHandle, 0xDB, uiModifier | MOD_NOREPEAT, 0xDB); // uiModifier + ß
-			RegisterHotKey(windowHandle, 0x1DB, MOD_SHIFT | uiModifier | MOD_NOREPEAT, 0xDB); // Shift + uiModifier + ß
-			RegisterHotKey(windowHandle, 0xDC, uiModifier | MOD_NOREPEAT, 0xDC); // uiModifier + ^
-			RegisterHotKey(windowHandle, 0x1DC, MOD_SHIFT | uiModifier | MOD_NOREPEAT, 0xDC); // Shift + uiModifier + ^
-			RegisterHotKey(windowHandle, 0xDD, uiModifier | MOD_NOREPEAT, 0xDD); // uiModifier + ´
-			RegisterHotKey(windowHandle, 0x1DD, MOD_SHIFT | uiModifier | MOD_NOREPEAT, 0xDD); // Shift + uiModifier + ´
+			RegisterHotKey(windowHandle, iHKL, uiModifier | MOD_NOREPEAT, (uint)iHKL); // uiModifier + ^
+			RegisterHotKey(windowHandle, iHKL+0x100, MOD_SHIFT | uiModifier | MOD_NOREPEAT, (uint)iHKL); // Shift + uiModifier + ^
+			RegisterHotKey(windowHandle, iHKR1, uiModifier | MOD_NOREPEAT, (uint)iHKR1); // uiModifier + ß
+			RegisterHotKey(windowHandle, iHKR1+0x100, MOD_SHIFT | uiModifier | MOD_NOREPEAT, (uint)iHKR1); // Shift + uiModifier + ß
+			RegisterHotKey(windowHandle, iHKR2, uiModifier | MOD_NOREPEAT, (uint)iHKR2); // uiModifier + ´
+			RegisterHotKey(windowHandle, iHKR2+0x100, MOD_SHIFT | uiModifier | MOD_NOREPEAT, (uint)iHKR2); // Shift + uiModifier + ´
 		}
 
 		// switch between hotkey modifiers
@@ -499,12 +543,12 @@ namespace WPFApplication
 				UnregisterHotKey(windowHandle, i);
 				UnregisterHotKey(windowHandle, i+0x100);
 			}
-			UnregisterHotKey(windowHandle, 0xDB);
-			UnregisterHotKey(windowHandle, 0x1DB);
-			UnregisterHotKey(windowHandle, 0xDC);
-			UnregisterHotKey(windowHandle, 0x1DC);
-			UnregisterHotKey(windowHandle, 0xDD);
-			UnregisterHotKey(windowHandle, 0x1DD);
+			UnregisterHotKey(windowHandle, iHKL);
+			UnregisterHotKey(windowHandle, iHKL+0x100);
+			UnregisterHotKey(windowHandle, iHKR1);
+			UnregisterHotKey(windowHandle, iHKR1+0x100);
+			UnregisterHotKey(windowHandle, iHKR2);
+			UnregisterHotKey(windowHandle, iHKR2+0x100);
 
 			// switch modifier flag
 			useAltModifier = !useAltModifier;
@@ -512,7 +556,7 @@ namespace WPFApplication
 			{ // use Alt as modifier for hotkey
 				// add hotkeys
 				RegisterHotkeys(MOD_ALT);
-				
+
 				// change tooltip descriptions
 				SwitchToolTips("Ctrl-", "Alt-");
 			}
@@ -542,11 +586,11 @@ namespace WPFApplication
 			objButton.ToolTip = ((string)objButton.ToolTip).Replace(oldFragment, newFragment);
 			objButton = (Button)this.FindName("EditFile");
 			objButton.ToolTip = ((string)objButton.ToolTip).Replace(oldFragment, newFragment);
-			objButton = (Button)this.FindName("SendCommand");
+			objButton = (Button)this.FindName("Command");
 			objButton.ToolTip = ((string)objButton.ToolTip).Replace(oldFragment, newFragment);
-			objButton = (Button)this.FindName("SendTextShiftSZ");
+			objButton = (Button)this.FindName("SendTextShiftHKR1");
 			objButton.ToolTip = ((string)objButton.ToolTip).Replace(oldFragment, newFragment);
-			objButton = (Button)this.FindName("SendTextShiftAccent");
+			objButton = (Button)this.FindName("SendTextShiftHKR2");
 			objButton.ToolTip = ((string)objButton.ToolTip).Replace(oldFragment, newFragment);
 		}
 
@@ -586,10 +630,10 @@ namespace WPFApplication
 						handled = true;
 					}
 
-					if (vkey == 0xDB) // key 'ß' pressed
+					if (vkey == iHKR1) // key 'ß' pressed
 					{ if (bWithShift)
 						{ // Hotkey with Shift: send content of textbox
-							TextBox objTextToSend = (TextBox)this.FindName("TextShiftToSendSZ");
+							TextBox objTextToSend = (TextBox)this.FindName("TextShiftToSendHKR1");
 							if (objTextToSend.Text != "")
 							{ // wait for Alt or Ctrl key release
 								if (useAltModifier)
@@ -634,7 +678,7 @@ namespace WPFApplication
 						handled = true;
 					}
 
-					if (vkey == 0xDC) // key '^' pressed
+					if (vkey == iHKL) // key '^' pressed
 					{ if (bWithShift)
 						{ // Hotkey with Shift: send keys of command output
 							TextBox objCommandToSend = (TextBox)this.FindName("CommandToSend");
@@ -663,10 +707,10 @@ namespace WPFApplication
 						handled = true;
 					}
 
-					if (vkey == 0xDD) // key '´' pressed
+					if (vkey == iHKR2) // key '´' pressed
 					{ if (bWithShift)
 						{ // Hotkey with Shift: send text field
-							TextBox objTextToSend = (TextBox)this.FindName("TextShiftToSendAccent");
+							TextBox objTextToSend = (TextBox)this.FindName("TextShiftToSendHKR2");
 							if (objTextToSend.Text != "")
 							{ // wait for Alt or Ctrl key release
 								if (useAltModifier)
@@ -951,19 +995,19 @@ namespace WPFApplication
 
 		<Button x:Name=""SendFile"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Send file"" ToolTip=""Send content of file (Ctrl-ß)"" Grid.Row=""11"" Grid.Column=""0""
 				Click=""SendFileButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
-		<CheckBox x:Name=""MultiLines"" IsChecked=""False"" Height=""18"" Width=""72"" HorizontalAlignment=""Right"" Margin=""0,4,16,0"" ToolTip=""Send text in multiple sendkeys commands if multiple lines of text"" 
+		<CheckBox x:Name=""MultiLines"" IsChecked=""False"" Height=""18"" Width=""72"" HorizontalAlignment=""Right"" Margin=""0,4,16,0"" ToolTip=""Send text in multiple sendkeys commands if multiple lines of text""
 				Grid.Row=""11"" Grid.Column=""1"">Multilines</CheckBox>
 
 		<Button x:Name=""EditFile"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Edit file"" ToolTip=""Edit content of file (Ctrl-´)"" Grid.Row=""12"" Grid.Column=""0""
 				Click=""EditFileButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
 		<WrapPanel Grid.Row=""12"" Grid.Column=""1"" >
 			<TextBox x:Name=""FileToSend"" Height=""18"" Width=""156"" AllowDrop=""True"" ToolTip=""Path and name of the file with text to send""
-				PreviewDragEnter=""TextBox_PreviewDragOver"" PreviewDragOver=""TextBox_PreviewDragOver"" PreviewDrop=""TextBox_PreviewDrop"">C:\Daten\Liste.txt</TextBox>
+				PreviewDragEnter=""TextBox_PreviewDragOver"" PreviewDragOver=""TextBox_PreviewDragOver"" PreviewDrop=""TextBox_PreviewDrop"">FileToSend.txt</TextBox>
 			<Button x:Name=""FileToSendPicker"" Background=""#FFD0D0D0"" Height=""18"" Width=""24"" Content=""..."" ToolTip=""File picker for file to send""
 				Click=""FilePicker_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
 		</WrapPanel>
 
-		<Button x:Name=""SendCommand"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Command"" ToolTip=""Send output of command (Ctrl-Shift-^)"" Grid.Row=""13"" Grid.Column=""0""
+		<Button x:Name=""Command"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Command"" ToolTip=""Send output of command (Ctrl-Shift-^)"" Grid.Row=""13"" Grid.Column=""0""
 				Click=""CommandButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
 		<TextBox x:Name=""CommandToSend"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Command to execute"" Grid.Row=""13"" Grid.Column=""1"" />
 
@@ -1007,13 +1051,13 @@ namespace WPFApplication
 				Click=""TextButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
 		<TextBox x:Name=""TextShiftToSend0"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Text to send"" Grid.Row=""23"" Grid.Column=""1"" />
 
-		<Button x:Name=""SendTextShiftSZ"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Send text"" ToolTip=""Send content of text field (Ctrl-Shift-ß)"" Grid.Row=""24"" Grid.Column=""0""
+		<Button x:Name=""SendTextShiftHKR1"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Send text"" ToolTip=""Send content of text field (Ctrl-Shift-ß)"" Grid.Row=""24"" Grid.Column=""0""
 				Click=""TextButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
-		<TextBox x:Name=""TextShiftToSendSZ"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Text to send"" Grid.Row=""24"" Grid.Column=""1"" />
+		<TextBox x:Name=""TextShiftToSendHKR1"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Text to send"" Grid.Row=""24"" Grid.Column=""1"" />
 
-		<Button x:Name=""SendTextShiftAccent"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Send text"" ToolTip=""Send content of text field (Ctrl-Shift-´)"" Grid.Row=""25"" Grid.Column=""0""
+		<Button x:Name=""SendTextShiftHKR2"" Background=""#FFD0D0D0"" Margin=""8,0,8,0"" Height=""18"" Width=""72"" Content=""Send text"" ToolTip=""Send content of text field (Ctrl-Shift-´)"" Grid.Row=""25"" Grid.Column=""0""
 				Click=""TextButton_Click"" MouseEnter=""Button_MouseEnter"" MouseLeave=""Button_MouseLeave"" />
-		<TextBox x:Name=""TextShiftToSendAccent"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Text to send"" Grid.Row=""25"" Grid.Column=""1"" />
+		<TextBox x:Name=""TextShiftToSendHKR2"" Height=""18"" Width=""180"" Margin=""0,0,10,0"" ToolTip=""Text to send"" Grid.Row=""25"" Grid.Column=""1"" />
 
 		<CheckBox x:Name=""HotkeyModifier"" IsChecked=""False"" Height=""18"" Width=""72"" Margin=""-2,4,0,0"" ToolTip=""Hotkey modifier CTRL (unchecked) or ALT (checked)"" Grid.Row=""26"" Grid.Column=""0""
 				Checked=""HotkeyModifier_Click"" Unchecked=""HotkeyModifier_Click"" >AltHotkey</CheckBox>
