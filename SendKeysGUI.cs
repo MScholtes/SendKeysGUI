@@ -3,7 +3,7 @@
 // Markus Scholtes, 2020+2023
 //
 // WPF "all in one file" program, no Visual Studio or MSBuild is needed to compile
-// V2.1 2023-05-12: determines virtual key codes according to keyboard layout and sets them for hotkeys
+// V2.2 2023-08-18: clipboard function replaces parenthesis with {}-code, comments with {#
 
 /* compile with:
 %WINDIR%\Microsoft.NET\Framework\v4.0.30319\csc.exe /target:winexe SendKeysGUI.cs /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\presentationframework.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\windowsbase.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\WPF\presentationcore.dll" /r:"%WINDIR%\Microsoft.NET\Framework64\v4.0.30319\System.Xaml.dll" /win32icon:MScholtes.ico
@@ -32,8 +32,8 @@ using System.Reflection;
 [assembly:AssemblyCopyright("© Markus Scholtes 2023")]
 [assembly:AssemblyTrademark("")]
 [assembly:AssemblyCulture("")]
-[assembly:AssemblyVersion("2.1.0.0")]
-[assembly:AssemblyFileVersion("2.1.0.0")]
+[assembly:AssemblyVersion("2.2.0.0")]
+[assembly:AssemblyFileVersion("2.2.0.0")]
 
 namespace WPFApplication
 {
@@ -140,7 +140,7 @@ namespace WPFApplication
 			}
 
 			// send keys of text in clipboard
-			SendKeys(sender, Clipboard.GetText().Replace("\r\n", "{ENTER}").Replace("\n", "{ENTER}"));
+			SendKeys(sender, Clipboard.GetText().Replace("+", "{PLUS}").Replace("%", "{PERCENT}").Replace("^", "{CARET}").Replace("@", "{AT}").Replace("(", "{LEFTPAREN}").Replace(")", "{RIGHTPAREN}").Replace("\r\n", "{ENTER}").Replace("\n", "{ENTER}"));
 		}
 
 		// left mouse click on button "Send Text"
@@ -702,7 +702,7 @@ namespace WPFApplication
 							else
 							{ while (Keyboard.IsKeyDown(Key.LeftCtrl) || Keyboard.IsKeyDown(Key.RightCtrl)) ; }
 							// send text in clipboard
-							SendKeys(this, Clipboard.GetText().Replace("\r\n", "{ENTER}").Replace("\n", "{ENTER}"));
+							SendKeys(this, Clipboard.GetText().Replace("+", "{PLUS}").Replace("%", "{PERCENT}").Replace("^", "{CARET}").Replace("@", "{AT}").Replace("(", "{LEFTPAREN}").Replace(")", "{RIGHTPAREN}").Replace("\r\n", "{ENTER}").Replace("\n", "{ENTER}"));
 						}
 						handled = true;
 					}

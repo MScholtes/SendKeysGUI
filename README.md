@@ -3,8 +3,8 @@ Keyboard macro tool, sends clipboard, text, file content or command output as ke
 
 Graphical front end for the fabulous **[sendkeys](https://github.com/lallousx86/SendKeys) by Elias Bachaalany (lallousx86)**.
 
-### Version 2.1, 2023-05-12
-- automatic configuration of the keyboard virtual keys left of "1" and right of "0" as hotkeys
+### Version 2.2, 2023-08-18
+- clipboard function replaces parenthesis with {}-code, comments with {#
 
 ## Description:
 Keyboard macro tool, sends clipboard, text, file content or command output as keystrokes.
@@ -20,6 +20,7 @@ The delivered **sendkeys.exe** has additional features:
 - APPACTIVATE ignores case and works on partial strings
 - {ALT}, {CTRL} und {SHIFT} as alternative to %, ^ and +
 - {WAIT ...} instead of {DELAY ...}
+- {# ...} as comment
 - expanded VK_ values
 - new commands {EXEC ...}, {EXECWAIT ...} and {EXECTOKEYS ...}
 - mouse control
